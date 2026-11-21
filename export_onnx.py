@@ -1,6 +1,8 @@
 """Exports the classifier to ONNX, checks it matches PyTorch, and measures latency."""
 import time
+from pathlib import Path
 
+import onnx
 import numpy as np
 import onnxruntime as ort
 import torch
@@ -22,7 +24,10 @@ torch.onnx.export(
     input_names=["features"], output_names=["scores"],
     dynamic_axes={"features": {0: "batch"}, "scores": {0: "batch"}},
 )
-
+# Store the weights inside the .onnx file: one self-contained file to deploy
+full_model = onnx.load(ONNX_PATH)
+onnx.save_model(full_model, ONNX_PATH, save_as_external_data=False)
+Path(ONNX_PATH + ".data").unlink(missing_ok=True)
 # 3. Parity: same input, compare outputs
 rng = np.random.default_rng(42)
 x = (rng.random((500, N_FEATURES)) < 0.02).astype(np.float32)
